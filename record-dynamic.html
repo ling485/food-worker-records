@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>工作记录 - 动态加载版</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 10px; background: #f5f5f5; }
+    .login-box { max-width: 400px; margin: 20px auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .btn { padding: 10px 20px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; }
+    .btn-primary { background: #4CAF50; color: white; }
+    .btn-register { background: #2196F3; color: white; }
+    input { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 5px; }
+    .log { background: #f8f9fa; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 12px; font-family: monospace; max-height: 200px; overflow-y: auto; }
+    .success { color: green; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <h2>🔐 用户登录</h2>
+    
+    <div>
+      <label>邮箱：</label>
+      <input type="email" id="loginEmail" placeholder="请输入邮箱" value="test@example.com">
+    </div>
+    
+    <div>
+      <label>密码：</label>
+      <input type="password" id="loginPassword" placeholder="请输入密码" value="123456">
+    </div>
+    
+    <div style="display: flex; gap: 10px;">
+      <button class="btn btn-primary" style="flex: 1;" onclick="login()">登录</button>
+      <button class="btn btn-register" style="flex: 1;" onclick="register()">注册</button>
+    </div>
+    
+    <div id="message" style="color: red; text-align: center; margin-top: 10px;"></div>
+    
+    <div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px;">
+      <h3>🔧 调试日志</h3>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <script>
+    const supabaseUrl = 'https://hllhspywaownmevhlite.supabase.co';
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhsbGhzcHl3YW93bm1ldmhsbHRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMDQxNTUsImV4cCI6MjA5NjU4MDE1NX0.P39gxPt3aQeU4Uagdn9MxB3gsNgeReWP5ZaO4kvw2xc';
+    
+    let supabase;
+    
+    function log(msg, type = 'info') {
+      const logDiv = document.getElementById('log');
+      const color = type === 'success' ? 'green' : type === 'error' ? 'red' : '#666';
+      logDiv.innerHTML += `<p style="color: ${color}">[${new Date().toLocaleTimeString()}] ${msg}</p>`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+    
+    function showMessage(msg) {
+      document.getElementById('message').textContent = msg;
+    }
+    
+    function loadScript(url, callback) {
+      log(`尝试加载: ${url}`);
+      const script = document.createElement('script');
+      script.src = url;
+      script.onload = () => {
+        log('✅ 脚本加载成功！', 'success');
+        callback(null);
+      };
+      script.onerror = (error) => {
+        log('❌ 脚本加载失败: ' + error.message, 'error');
+        callback(error);
+      };
+      document.head.appendChild(script);
+    }
+    
+    async function loadSupabase() {
+      log('=== 开始加载 Supabase SDK ===');
+      
+      showMessage('正在加载系统...');
+      
+      return new Promise((resolve, reject) => {
+        loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js', (error) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+          
+          try {
+            log('创建 Supabase 客户端...');
+            supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+            
+            if (!supabase || !supabase.auth) {
+              throw new Error('客户端创建失败');
+            }
+            
+            log('✅ Supabase 客户端创建成功！', 'success');
+            log('✅ supabase.auth 可用', 'success');
+            showMessage('系统就绪');
+            resolve();
+          } catch (e) {
+            log('❌ 创建客户端失败: ' + e.message, 'error');
+            reject(e);
+          }
+        });
+      });
+    }
+    
+    async function register() {
+      log('=== 点击注册按钮 ===');
+      
+      if (!supabase) {
+        log('❌ supabase 未初始化，尝试重新加载...', 'error');
+        try {
+          await loadSupabase();
+        } catch (e) {
+          showMessage('系统加载失败，请刷新重试');
+          return;
+        }
+      }
+      
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      
+      if (!email || !password) {
+        showMessage('请填写邮箱和密码');
+        return;
+      }
+      
+      if (password.length < 6) {
+        showMessage('密码至少需要6位');
+        return;
+      }
+      
+      try {
+        log('🔄 正在注册...');
+        showMessage('注册中...');
+        
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        
+        if (error) {
+          log('❌ 注册失败: ' + error.message, 'error');
+          showMessage('注册失败: ' + error.message);
+          return;
+        }
+        
+        if (data.user) {
+          log('✅ 注册成功！', 'success');
+          showMessage('注册成功！');
+          alert('注册成功！现在可以登录了！');
+        } else {
+          showMessage('请检查邮箱验证');
+        }
+      } catch (e) {
+        log('❌ 注册异常: ' + e.message, 'error');
+        showMessage('注册失败: ' + e.message);
+      }
+    }
+    
+    async function login() {
+      log('=== 点击登录按钮 ===');
+      
+      if (!supabase) {
+        log('❌ supabase 未初始化，尝试重新加载...', 'error');
+        try {
+          await loadSupabase();
+        } catch (e) {
+          showMessage('系统加载失败，请刷新重试');
+          return;
+        }
+      }
+      
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      
+      try {
+        log('🔄 正在登录...');
+        showMessage('登录中...');
+        
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        
+        if (error) {
+          log('❌ 登录失败: ' + error.message, 'error');
+          showMessage('登录失败: ' + error.message);
+          return;
+        }
+        
+        if (data.user) {
+          log('✅ 登录成功！', 'success');
+          showMessage('登录成功！');
+          alert('登录成功！');
+        }
+      } catch (e) {
+        log('❌ 登录异常: ' + e.message, 'error');
+        showMessage('登录失败: ' + e.message);
+      }
+    }
+    
+    loadSupabase();
+  </script>
+</body>
+</html>
