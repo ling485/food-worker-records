@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>工作记录</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background-color: #f5f5f5;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .header {
+      background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+      color: white;
+      padding: 24px;
+      border-radius: 16px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .header h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    .header p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    .tabs {
+      display: flex;
+      background-color: white;
+      border-radius: 12px;
+      padding: 6px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #666;
+      transition: all 0.3s;
+    }
+    .tab.active {
+      background-color: #4CAF50;
+      color: white;
+    }
+    .record-section {
+      background-color: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 16px;
+      padding-left: 10px;
+      border-left: 4px solid #4CAF50;
+    }
+    .date-selector {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .date-selector label {
+      font-size: 14px;
+      color: #666;
+    }
+    .date-selector input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+    .date-selector input:focus {
+      border-color: #4CAF50;
+    }
+    .input-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .input-item {
+      display: flex;
+      flex-direction: column;
+    }
+    .input-item label {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    .input-item input {
+      width: 100%;
+      padding: 14px;
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+      border: 2px solid #eee;
+      border-radius: 12px;
+      outline: none;
+      transition: all 0.3s;
+    }
+    .input-item input:focus {
+      border-color: #4CAF50;
+      box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+    }
+    .input-item input::placeholder {
+      color: #ccc;
+    }
+    .unit {
+      font-size: 12px;
+      color: #999;
+      text-align: center;
+      margin-top: 4px;
+    }
+    .btn {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 16px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+    }
+    .btn:active {
+      transform: translateY(0);
+    }
+    .table-section {
+      background-color: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    .table-wrapper {
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    th, td {
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid #eee;
+    }
+    th {
+      background-color: #f8f9fa;
+      font-weight: bold;
+      color: #333;
+    }
+    tr:hover {
+      background-color: #f8f9fa;
+    }
+    .month-header {
+      background-color: #4CAF50;
+      color: white;
+      font-weight: bold;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+    .empty-state .icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+    .delete-btn {
+      background-color: #fff;
+      border: 1px solid #ff4444;
+      color: #ff4444;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+      margin-left: 4px;
+    }
+    .delete-btn:hover {
+      background-color: #fff5f5;
+    }
+    .edit-btn {
+      background-color: #fff;
+      border: 1px solid #4CAF50;
+      color: #4CAF50;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+    .edit-btn:hover {
+      background-color: #f0fff0;
+    }
+    .stats-card {
+      background-color: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .stat-item {
+      text-align: center;
+      padding: 16px;
+      background-color: #f8f9fa;
+      border-radius: 12px;
+    }
+    .stat-label {
+      font-size: 12px;
+      color: #999;
+      margin-bottom: 8px;
+    }
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+    }
+    .month-filter {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .month-filter select,
+    .month-filter input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+    }
+    .month-filter select:focus,
+    .month-filter input:focus {
+      border-color: #4CAF50;
+    }
+    .custom-filter {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .custom-filter .filter-group {
+      flex: 1;
+      min-width: 200px;
+    }
+    .custom-filter label {
+      display: block;
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 6px;
+    }
+    .custom-filter select,
+    .custom-filter input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+    }
+    .custom-filter select:focus,
+    .custom-filter input:focus {
+      border-color: #4CAF50;
+    }
+  </style>
+</head>
+<body>
+  <div id="auth-section">
+    <div class="record-section" style="max-width: 400px; margin: 0 auto;">
+      <div class="section-title" style="text-align: center; border-left: none;">🔐 用户登录</div>
+      
+      <div style="margin-bottom: 16px;">
+        <label>邮箱：</label>
+        <input type="email" id="loginEmail" placeholder="请输入邮箱" style="width: 100%; padding: 12px; margin-top: 8px; border: 1px solid #ddd; border-radius: 8px; outline: none;">
+      </div>
+      
+      <div style="margin-bottom: 16px;">
+        <label>密码：</label>
+        <input type="password" id="loginPassword" placeholder="请输入密码" style="width: 100%; padding: 12px; margin-top: 8px; border: 1px solid #ddd; border-radius: 8px; outline: none;">
+      </div>
+      
+      <div style="display: flex; gap: 12px;">
+        <button class="btn" style="flex: 1;" onclick="login()">登录</button>
+        <button class="btn" style="flex: 1; background: #2196F3;" onclick="register()">注册</button>
+      </div>
+      
+      <div id="authMessage" style="text-align: center; margin-top: 16px; color: #f44336; display: none;"></div>
+    </div>
+  </div>
+
+  <div id="main-content" style="display: none;">
+    <div class="container">
+      <div class="header">
+        <h1>🍽️ 工作记录</h1>
+        <p>记录每日工作量，方便统计汇总</p>
+        <div style="margin-top: 12px;">
+          <button style="padding: 8px 16px; background: rgba(255,255,255,0.2); color: white; border: 1px solid white; border-radius: 6px; cursor: pointer; font-size: 14px;" onclick="logout()">退出登录</button>
+        </div>
+      </div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('record')">今日记录</div>
+      <div class="tab" onclick="showTab('stats')">月度统计</div>
+      <div class="tab" onclick="showTab('custom')">自由统计</div>
+    </div>
+
+    <div id="record-tab">
+      <div class="record-section">
+        <div class="section-title">📝 今日记录</div>
+        <div class="date-selector">
+          <label>日期：</label>
+          <input type="date" id="recordDate" value="" onchange="onDateChange()">
+        </div>
+        <div class="input-grid">
+          <div class="input-item">
+            <label>鸡肉</label>
+            <input type="number" id="chicken" placeholder="0" min="0">
+            <div class="unit">盆</div>
+          </div>
+          <div class="input-item">
+            <label>猪肉</label>
+            <input type="number" id="pork" placeholder="0" min="0">
+            <div class="unit">盆</div>
+          </div>
+          <div class="input-item">
+            <label>锅包肉</label>
+            <input type="number" id="sweetAndSourPork" placeholder="0" min="0">
+            <div class="unit">盆</div>
+          </div>
+        </div>
+        <button class="btn" onclick="saveRecord()">保存记录</button>
+      </div>
+
+      <div class="table-section">
+        <div class="section-title">📋 历史记录</div>
+        <div class="month-filter">
+          <select id="historyMonth" onchange="loadHistory()">
+            <option value="">全部月份</option>
+          </select>
+        </div>
+        <div class="table-wrapper">
+          <table id="historyTable">
+            <thead>
+              <tr>
+                <th>日期</th>
+                <th>鸡肉（盆）</th>
+                <th>猪肉（盆）</th>
+                <th>锅包肉（盆）</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="historyEmpty" class="empty-state" style="display: none;">
+          <div class="icon">📭</div>
+          <div>暂无记录</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="stats-tab" style="display: none;">
+      <div class="stats-card">
+        <div class="section-title">📊 本月统计</div>
+        <div class="month-filter">
+          <select id="statsMonth" onchange="loadStats()">
+            <option value="">选择月份</option>
+          </select>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-label">鸡肉</div>
+            <div class="stat-value" id="statChicken">0</div>
+            <div class="unit">盆</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">猪肉</div>
+            <div class="stat-value" id="statPork">0</div>
+            <div class="unit">盆</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">锅包肉</div>
+            <div class="stat-value" id="statSweet">0</div>
+            <div class="unit">盆</div>
+          </div>
+        </div>
+      </div>
+      <div class="table-section">
+        <div class="section-title">📈 每日明细</div>
+        <div class="table-wrapper">
+          <table id="statsTable">
+            <thead>
+              <tr>
+                <th>日期</th>
+                <th>鸡肉</th>
+                <th>猪肉</th>
+                <th>锅包肉</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="statsEmpty" class="empty-state" style="display: none;">
+          <div class="icon">📈</div>
+          <div>暂无统计数据</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="custom-tab" style="display: none;">
+      <div class="stats-card">
+        <div class="section-title">🎯 自由统计</div>
+        <div class="custom-filter">
+          <div class="filter-group">
+            <label>统计类型</label>
+            <select id="customType" onchange="onCustomTypeChange()">
+              <option value="range">自定义时间段</option>
+              <option value="year">年度统计</option>
+              <option value="quarter">季度统计</option>
+            </select>
+          </div>
+          <div class="filter-group" id="yearGroup" style="display: none;">
+            <label>选择年份</label>
+            <select id="customYear" onchange="loadCustomStats()">
+              <option value="">选择年份</option>
+            </select>
+          </div>
+          <div class="filter-group" id="quarterGroup" style="display: none;">
+            <label>选择季度</label>
+            <select id="customQuarter" onchange="loadCustomStats()">
+              <option value="Q1">第一季度 (1-3月)</option>
+              <option value="Q2">第二季度 (4-6月)</option>
+              <option value="Q3">第三季度 (7-9月)</option>
+              <option value="Q4">第四季度 (10-12月)</option>
+            </select>
+          </div>
+        </div>
+        <div class="custom-filter" id="dateRangeGroup">
+          <div class="filter-group">
+            <label>开始日期</label>
+            <input type="date" id="customStartDate" onchange="loadCustomStats()">
+          </div>
+          <div class="filter-group">
+            <label>结束日期</label>
+            <input type="date" id="customEndDate" onchange="loadCustomStats()">
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-label">鸡肉</div>
+            <div class="stat-value" id="customChicken">0</div>
+            <div class="unit">盆</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">猪肉</div>
+            <div class="stat-value" id="customPork">0</div>
+            <div class="unit">盆</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">锅包肉</div>
+            <div class="stat-value" id="customSweet">0</div>
+            <div class="unit">盆</div>
+          </div>
+        </div>
+      </div>
+      <div class="table-section">
+        <div class="section-title">📋 统计明细</div>
+        <div class="table-wrapper">
+          <table id="customTable">
+            <thead>
+              <tr>
+                <th>日期</th>
+                <th>鸡肉</th>
+                <th>猪肉</th>
+                <th>锅包肉</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="customEmpty" class="empty-state" style="display: none;">
+          <div class="icon">📊</div>
+          <div>暂无统计数据</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const supabaseUrl = 'https://hllhspywaownmevhlite.supabase.co';
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhsbGhzcHl3YW93bm1ldmhsbHRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMDQxNTUsImV4cCI6MjA5NjU4MDE1NX0.P39gxPt3aQeU4Uagdn9MxB3gsNgeReWP5ZaO4kvw2xc';
+    let supabase;
+    let currentUser = null;
+    const STORAGE_KEY = 'food_worker_records';
+
+    function initSupabase() {
+      supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+      document.getElementById('authMessage').style.display = 'none';
+    }
+
+    function getRecords() {
+      try {
+        const data = localStorage.getItem(STORAGE_KEY);
+        return data ? JSON.parse(data) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveRecords(records) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    }
+
+    async function syncRecordsToCloud(records) {
+      if (!currentUser) return;
+      try {
+        for (const record of records) {
+          await supabase.from('records').upsert({
+            user_id: currentUser.id,
+            date: record.date,
+            chicken: record.chicken || 0,
+            pork: record.pork || 0,
+            sweet_and_sour_pork: record.sweetAndSourPork || 0
+          });
+        }
+      } catch (error) {
+        console.error('同步数据失败:', error);
+      }
+    }
+
+    async function loadRecordsFromCloud() {
+      if (!currentUser) return;
+      try {
+        const { data, error } = await supabase
+          .from('records')
+          .select('*')
+          .eq('user_id', currentUser.id)
+          .order('date', { ascending: false });
+        
+        if (error) throw error;
+        
+        const records = data.map(item => ({
+          id: item.id,
+          date: item.date,
+          chicken: item.chicken,
+          pork: item.pork,
+          sweetAndSourPork: item.sweet_and_sour_pork,
+          createdAt: new Date(item.created_at).getTime()
+        }));
+        
+        saveRecords(records);
+        return records;
+      } catch (error) {
+        console.error('加载数据失败:', error);
+        return getRecords();
+      }
+    }
+
+    function getToday() {
+      const today = new Date();
+      return today.toISOString().split('T')[0];
+    }
+
+    function formatDate(dateStr) {
+      const date = new Date(dateStr);
+      return `${date.getMonth() + 1}月${date.getDate()}日`;
+    }
+
+    function setAuthMessage(message) {
+      const msg = document.getElementById('authMessage');
+      msg.textContent = message;
+      msg.style.display = message ? 'block' : 'none';
+    }
+
+    async function login() {
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      
+      if (!email || !password) {
+        setAuthMessage('请填写邮箱和密码');
+        return;
+      }
+
+      try {
+        setAuthMessage('登录中...');
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password, options: { rememberMe: true } });
+        if (error) throw error;
+        currentUser = data.user;
+        handleLogin();
+      } catch (error) {
+        setAuthMessage('登录失败：' + error.message);
+      }
+    }
+
+    async function register() {
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      
+      if (!email || !password) {
+        setAuthMessage('请填写邮箱和密码');
+        return;
+      }
+
+      if (password.length < 6) {
+        setAuthMessage('密码至少需要6位');
+        return;
+      }
+
+      try {
+        setAuthMessage('注册中...');
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        currentUser = data.user;
+        handleLogin();
+      } catch (error) {
+        setAuthMessage('注册失败：' + error.message);
+      }
+    }
+
+    async function logout() {
+      await supabase.auth.signOut();
+      currentUser = null;
+      document.getElementById('auth-section').style.display = 'block';
+      document.getElementById('main-content').style.display = 'none';
+      document.getElementById('loginEmail').value = '';
+      document.getElementById('loginPassword').value = '';
+      setAuthMessage('');
+    }
+
+    async function handleLogin() {
+      document.getElementById('auth-section').style.display = 'none';
+      document.getElementById('main-content').style.display = 'block';
+      
+      await loadRecordsFromCloud();
+      
+      document.getElementById('recordDate').value = getToday();
+      document.getElementById('customStartDate').value = getToday();
+      document.getElementById('customEndDate').value = getToday();
+      
+      updateMonthOptions();
+      loadHistory();
+      setupAutoSave();
+    }
+
+    document.addEventListener('DOMContentLoaded', initSupabase);
+
+    const chickenInput = document.getElementById('chicken');
+    const porkInput = document.getElementById('pork');
+    const sweetInput = document.getElementById('sweetAndSourPork');
+
+    function loadRecordByDate(date) {
+      const records = getRecords();
+      const record = records.find(r => r.date === date);
+      if (record) {
+        chickenInput.value = record.chicken || '';
+        porkInput.value = record.pork || '';
+        sweetInput.value = record.sweetAndSourPork || '';
+      } else {
+        chickenInput.value = '';
+        porkInput.value = '';
+        sweetInput.value = '';
+      }
+    }
+
+    function onDateChange() {
+      const date = document.getElementById('recordDate').value;
+      loadRecordByDate(date);
+    }
+
+    async function saveRecord() {
+      const date = document.getElementById('recordDate').value;
+      const chicken = parseInt(chickenInput.value) || 0;
+      const pork = parseInt(porkInput.value) || 0;
+      const sweet = parseInt(sweetInput.value) || 0;
+
+      if (!date) {
+        alert('请选择日期');
+        return;
+      }
+
+      if (chicken === 0 && pork === 0 && sweet === 0) {
+        alert('请至少填写一项工作量');
+        return;
+      }
+
+      const records = getRecords();
+      const existingIndex = records.findIndex(r => r.date === date);
+
+      const record = {
+        date: date,
+        chicken: chicken,
+        pork: pork,
+        sweetAndSourPork: sweet,
+        createdAt: Date.now()
+      };
+
+      if (existingIndex >= 0) {
+        records[existingIndex] = record;
+      } else {
+        records.push(record);
+      }
+
+      records.sort((a, b) => new Date(b.date) - new Date(a.date));
+      saveRecords(records);
+      await syncRecordsToCloud(records);
+
+      alert('记录保存成功！');
+      updateMonthOptions();
+      loadHistory();
+    }
+
+    function showTab(tabName) {
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('[id$="-tab"]').forEach(tab => tab.style.display = 'none');
+      
+      event.target.classList.add('active');
+      document.getElementById(tabName + '-tab').style.display = 'block';
+
+      if (tabName === 'record') {
+        loadHistory();
+      } else if (tabName === 'stats') {
+        loadStats();
+      } else if (tabName === 'custom') {
+        loadCustomStats();
+      }
+    }
+
+    function updateMonthOptions() {
+      const records = getRecords();
+      const months = new Set();
+      const years = new Set();
+      
+      records.forEach(r => {
+        const month = r.date.substring(0, 7);
+        const year = r.date.substring(0, 4);
+        months.add(month);
+        years.add(year);
+      });
+
+      const historySelect = document.getElementById('historyMonth');
+      const statsSelect = document.getElementById('statsMonth');
+      const yearSelect = document.getElementById('customYear');
+
+      historySelect.innerHTML = '<option value="">全部月份</option>';
+      statsSelect.innerHTML = '<option value="">选择月份</option>';
+      yearSelect.innerHTML = '<option value="">选择年份</option>';
+
+      Array.from(months).sort((a, b) => b.localeCompare(a)).forEach(month => {
+        const [year, m] = month.split('-');
+        const option1 = document.createElement('option');
+        option1.value = month;
+        option1.textContent = `${year}年${parseInt(m)}月`;
+        historySelect.appendChild(option1);
+
+        const option2 = document.createElement('option');
+        option2.value = month;
+        option2.textContent = `${year}年${parseInt(m)}月`;
+        statsSelect.appendChild(option2);
+      });
+
+      Array.from(years).sort((a, b) => b.localeCompare(a)).forEach(year => {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = `${year}年`;
+        yearSelect.appendChild(option);
+      });
+
+      const today = new Date();
+      const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+      statsSelect.value = currentMonth;
+      yearSelect.value = today.getFullYear().toString();
+    }
+
+    function loadHistory() {
+      const month = document.getElementById('historyMonth').value;
+      const records = getRecords();
+      const filtered = month ? records.filter(r => r.date.startsWith(month)) : records;
+      const tbody = document.getElementById('historyTable').querySelector('tbody');
+      const emptyDiv = document.getElementById('historyEmpty');
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '';
+        emptyDiv.style.display = 'block';
+        return;
+      }
+
+      emptyDiv.style.display = 'none';
+
+      let html = '';
+      let currentMonth = '';
+
+      filtered.forEach((record, index) => {
+        const recordMonth = record.date.substring(0, 7);
+        
+        if (recordMonth !== currentMonth) {
+          currentMonth = recordMonth;
+          const [year, m] = currentMonth.split('-');
+          html += `<tr class="month-header"><td colspan="5">${year}年${parseInt(m)}月</td></tr>`;
+        }
+
+        html += `
+          <tr>
+            <td>${formatDate(record.date)}</td>
+            <td>${record.chicken || 0}</td>
+            <td>${record.pork || 0}</td>
+            <td>${record.sweetAndSourPork || 0}</td>
+            <td>
+              <button class="edit-btn" onclick="editRecord('${record.date}')">修改</button>
+              <button class="delete-btn" onclick="deleteRecord('${record.date}')">删除</button>
+            </td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = html;
+    }
+
+    async function deleteRecord(date) {
+      if (!confirm('确定要删除这条记录吗？')) return;
+      
+      const records = getRecords();
+      const filtered = records.filter(r => r.date !== date);
+      saveRecords(filtered);
+      
+      if (currentUser) {
+        try {
+          const { error } = await supabase
+            .from('records')
+            .delete()
+            .eq('user_id', currentUser.id)
+            .eq('date', date);
+          if (error) throw error;
+        } catch (error) {
+          console.error('删除失败:', error);
+        }
+      }
+      
+      loadHistory();
+      updateMonthOptions();
+      
+      if (document.getElementById('recordDate').value === date) {
+        chickenInput.value = '';
+        porkInput.value = '';
+        sweetInput.value = '';
+      }
+    }
+
+    function editRecord(date) {
+      document.getElementById('recordDate').value = date;
+      loadRecordByDate(date);
+      
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('[id$="-tab"]').forEach(tab => tab.style.display = 'none');
+      document.querySelector('.tab:first-child').classList.add('active');
+      document.getElementById('record-tab').style.display = 'block';
+      
+      document.getElementById('recordDate').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function loadStats() {
+      const month = document.getElementById('statsMonth').value;
+      
+      if (!month) {
+        document.getElementById('statChicken').textContent = '0';
+        document.getElementById('statPork').textContent = '0';
+        document.getElementById('statSweet').textContent = '0';
+        document.getElementById('statsTable').querySelector('tbody').innerHTML = '';
+        document.getElementById('statsEmpty').style.display = 'block';
+        return;
+      }
+
+      const records = getRecords();
+      const filtered = records.filter(r => r.date.startsWith(month)).sort((a, b) => a.date.localeCompare(b.date));
+
+      let totalChicken = 0, totalPork = 0, totalSweet = 0;
+      filtered.forEach(r => {
+        totalChicken += r.chicken || 0;
+        totalPork += r.pork || 0;
+        totalSweet += r.sweetAndSourPork || 0;
+      });
+
+      document.getElementById('statChicken').textContent = totalChicken;
+      document.getElementById('statPork').textContent = totalPork;
+      document.getElementById('statSweet').textContent = totalSweet;
+
+      const tbody = document.getElementById('statsTable').querySelector('tbody');
+      const emptyDiv = document.getElementById('statsEmpty');
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '';
+        emptyDiv.style.display = 'block';
+        return;
+      }
+
+      emptyDiv.style.display = 'none';
+
+      let html = '';
+      filtered.forEach(record => {
+        html += `
+          <tr>
+            <td>${formatDate(record.date)}</td>
+            <td>${record.chicken || 0}</td>
+            <td>${record.pork || 0}</td>
+            <td>${record.sweetAndSourPork || 0}</td>
+          </tr>`;
+      });
+
+      tbody.innerHTML = html;
+    }
+
+    function onCustomTypeChange() {
+      const type = document.getElementById('customType').value;
+      
+      document.getElementById('dateRangeGroup').style.display = type === 'range' ? 'flex' : 'none';
+      document.getElementById('yearGroup').style.display = type === 'year' ? 'block' : 'none';
+      document.getElementById('quarterGroup').style.display = type === 'quarter' ? 'block' : 'none';
+      
+      loadCustomStats();
+    }
+
+    function loadCustomStats() {
+      const type = document.getElementById('customType').value;
+      let filtered = getRecords();
+
+      if (type === 'range') {
+        const startDate = document.getElementById('customStartDate').value;
+        const endDate = document.getElementById('customEndDate').value;
+        
+        if (!startDate || !endDate) {
+          document.getElementById('customChicken').textContent = '0';
+          document.getElementById('customPork').textContent = '0';
+          document.getElementById('customSweet').textContent = '0';
+          document.getElementById('customTable').querySelector('tbody').innerHTML = '';
+          document.getElementById('customEmpty').style.display = 'block';
+          return;
+        }
+        
+        filtered = filtered.filter(r => r.date >= startDate && r.date <= endDate);
+      } else if (type === 'year') {
+        const year = document.getElementById('customYear').value;
+        if (!year) {
+          document.getElementById('customChicken').textContent = '0';
+          document.getElementById('customPork').textContent = '0';
+          document.getElementById('customSweet').textContent = '0';
+          document.getElementById('customTable').querySelector('tbody').innerHTML = '';
+          document.getElementById('customEmpty').style.display = 'block';
+          return;
+        }
+        filtered = filtered.filter(r => r.date.startsWith(year));
+      } else if (type === 'quarter') {
+        const quarter = document.getElementById('customQuarter').value;
+        const year = document.getElementById('customYear').value;
+        
+        if (!quarter || !year) {
+          document.getElementById('customChicken').textContent = '0';
+          document.getElementById('customPork').textContent = '0';
+          document.getElementById('customSweet').textContent = '0';
+          document.getElementById('customTable').querySelector('tbody').innerHTML = '';
+          document.getElementById('customEmpty').style.display = 'block';
+          return;
+        }
+        
+        const monthRanges = {
+          'Q1': ['01', '02', '03'],
+          'Q2': ['04', '05', '06'],
+          'Q3': ['07', '08', '09'],
+          'Q4': ['10', '11', '12']
+        };
+        
+        const months = monthRanges[quarter];
+        filtered = filtered.filter(r => {
+          const month = r.date.substring(5, 7);
+          return months.includes(month) && r.date.startsWith(year);
+        });
+      }
+
+      filtered.sort((a, b) => a.date.localeCompare(b.date));
+
+      let totalChicken = 0, totalPork = 0, totalSweet = 0;
+      filtered.forEach(r => {
+        totalChicken += r.chicken || 0;
+        totalPork += r.pork || 0;
+        totalSweet += r.sweetAndSourPork || 0;
+      });
+
+      document.getElementById('customChicken').textContent = totalChicken;
+      document.getElementById('customPork').textContent = totalPork;
+      document.getElementById('customSweet').textContent = totalSweet;
+
+      const tbody = document.getElementById('customTable').querySelector('tbody');
+      const emptyDiv = document.getElementById('customEmpty');
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '';
+        emptyDiv.style.display = 'block';
+        return;
+      }
+
+      emptyDiv.style.display = 'none';
+
+      let html = '';
+      filtered.forEach(record => {
+        html += `
+          <tr>
+            <td>${formatDate(record.date)}</td>
+            <td>${record.chicken || 0}</td>
+            <td>${record.pork || 0}</td>
+            <td>${record.sweetAndSourPork || 0}</td>
+          </tr>`;
+      });
+
+      tbody.innerHTML = html;
+    }
+
+    let autoSaveTimer = null;
+    function setupAutoSave() {
+      const inputs = [chickenInput, porkInput, sweetInput];
+      inputs.forEach(input => {
+        input.addEventListener('input', () => {
+          if (autoSaveTimer) clearTimeout(autoSaveTimer);
+          autoSaveTimer = setTimeout(async () => {
+            const date = document.getElementById('recordDate').value;
+            const chicken = parseInt(chickenInput.value) || 0;
+            const pork = parseInt(porkInput.value) || 0;
+            const sweet = parseInt(sweetInput.value) || 0;
+
+            if (!date) return;
+
+            const records = getRecords();
+            const existingIndex = records.findIndex(r => r.date === date);
+
+            const record = {
+              date: date,
+              chicken: chicken,
+              pork: pork,
+              sweetAndSourPork: sweet,
+              createdAt: Date.now()
+            };
+
+            if (existingIndex >= 0) {
+              records[existingIndex] = record;
+            } else if (chicken > 0 || pork > 0 || sweet > 0) {
+              records.push(record);
+            }
+
+            records.sort((a, b) => new Date(b.date) - new Date(a.date));
+            saveRecords(records);
+            await syncRecordsToCloud(records);
+            updateMonthOptions();
+            loadHistory();
+          }, 500);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
