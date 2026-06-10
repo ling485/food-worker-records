@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SDK加载测试</title>
+  <script>
+    window.addEventListener('error', function(e) {
+      log('❌ JS错误: ' + e.message, 'error');
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onload="onSDKLoaded()" onerror="onSDKError()"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .log { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 14px; }
+    .success { color: green; }
+    .error { color: red; }
+    .info { color: gray; }
+  </style>
+</head>
+<body>
+  <h1>🔧 SDK 加载测试</h1>
+  
+  <div class="log" id="log"></div>
+
+  <script>
+    function log(msg, type = 'info') {
+      const logDiv = document.getElementById('log');
+      const color = type === 'success' ? 'green' : type === 'error' ? 'red' : 'gray';
+      logDiv.innerHTML += `<p style="color: ${color}">[${new Date().toLocaleTimeString()}] ${msg}</p>`;
+    }
+    
+    log('页面开始加载...');
+    
+    function onSDKLoaded() {
+      log('✅ SDK加载成功！', 'success');
+      log('检查 window.supabase: ' + !!window.supabase, 'success');
+      log('检查 createClient: ' + typeof window.supabase?.createClient, 'success');
+    }
+    
+    function onSDKError() {
+      log('❌ SDK加载失败！', 'error');
+    }
+    
+    setTimeout(function() {
+      if (!window.supabase) {
+        log('❌ 超时：SDK仍未加载', 'error');
+      }
+    }, 5000);
+  </script>
+</body>
+</html>
