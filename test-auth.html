@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试认证</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
+    .log { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; font-family: monospace; font-size: 12px; max-height: 300px; overflow-y: auto; }
+    .btn { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    input { padding: 8px; margin: 5px; width: 250px; }
+    .success { color: green; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <h1>🔧 Supabase 认证测试</h1>
+  
+  <div>
+    <input type="email" id="email" placeholder="邮箱" value="test@example.com">
+    <input type="password" id="password" placeholder="密码" value="123456">
+    <br>
+    <button class="btn" onclick="testInit()">测试初始化</button>
+    <button class="btn" onclick="testRegister()">测试注册</button>
+    <button class="btn" onclick="testLogin()">测试登录</button>
+  </div>
+  
+  <div class="log" id="log"></div>
+
+  <script>
+    const supabaseUrl = 'https://hllhspywaownmevhlite.supabase.co';
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhsbGhzcHl3YW93bm1ldmhsbHRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMDQxNTUsImV4cCI6MjA5NjU4MDE1NX0.P39gxPt3aQeU4Uagdn9MxB3gsNgeReWP5ZaO4kvw2xc';
+    
+    let supabase;
+
+    function log(msg, type = 'info') {
+      const logDiv = document.getElementById('log');
+      const color = type === 'success' ? 'green' : type === 'error' ? 'red' : 'gray';
+      logDiv.innerHTML += `<span style="color: ${color}">[${new Date().toLocaleTimeString()}] ${msg}</span><br>`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    async function testInit() {
+      log('=== 开始初始化测试 ===');
+      
+      try {
+        log('检查 window.supabase 是否存在...');
+        if (!window.supabase) {
+          log('❌ window.supabase 不存在', 'error');
+          return;
+        }
+        log('✅ window.supabase 存在');
+        
+        log('检查 createClient 函数...');
+        if (typeof window.supabase.createClient !== 'function') {
+          log('❌ createClient 不是函数', 'error');
+          return;
+        }
+        log('✅ createClient 是函数');
+        
+        log('创建 Supabase 客户端...');
+        supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+        
+        log('检查 supabase 对象...');
+        if (!supabase) {
+          log('❌ supabase 对象为空', 'error');
+          return;
+        }
+        log('✅ supabase 对象创建成功');
+        
+        log('检查 supabase.auth...');
+        if (!supabase.auth) {
+          log('❌ supabase.auth 不存在', 'error');
+          return;
+        }
+        log('✅ supabase.auth 存在');
+        
+        log('初始化测试完成！', 'success');
+      } catch (error) {
+        log('初始化异常: ' + error.message, 'error');
+      }
+    }
+
+    async function testRegister() {
+      log('=== 开始注册测试 ===');
+      
+      if (!supabase) {
+        log('❌ 请先初始化', 'error');
+        return;
+      }
+      
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      
+      log(`邮箱: ${email}`);
+      log(`密码长度: ${password.length}`);
+      
+      try {
+        log('调用 signUp...');
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        
+        if (error) {
+          log('❌ 注册失败: ' + error.message, 'error');
+          return;
+        }
+        
+        if (data.user) {
+          log('✅ 注册成功！用户ID: ' + data.user.id, 'success');
+        } else {
+          log('⚠️ 注册请求已发送，请检查邮箱验证', 'info');
+        }
+      } catch (error) {
+        log('❌ 注册异常: ' + error.message, 'error');
+      }
+    }
+
+    async function testLogin() {
+      log('=== 开始登录测试 ===');
+      
+      if (!supabase) {
+        log('❌ 请先初始化', 'error');
+        return;
+      }
+      
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      
+      try {
+        log('调用 signInWithPassword...');
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        
+        if (error) {
+          log('❌ 登录失败: ' + error.message, 'error');
+          return;
+        }
+        
+        if (data.user) {
+          log('✅ 登录成功！用户ID: ' + data.user.id, 'success');
+        }
+      } catch (error) {
+        log('❌ 登录异常: ' + error.message, 'error');
+      }
+    }
+
+    log('页面加载完成，请点击按钮测试');
+  </script>
+</body>
+</html>
