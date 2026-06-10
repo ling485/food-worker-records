@@ -529,9 +529,30 @@
     let currentUser = null;
     const STORAGE_KEY = 'food_worker_records';
 
+    let supabaseReady = false;
+
     function initSupabase() {
-      supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-      document.getElementById('authMessage').style.display = 'none';
+      try {
+        if (!window.supabase || !window.supabase.createClient) {
+          document.getElementById('authMessage').textContent = '加载失败，请刷新重试';
+          document.getElementById('authMessage').style.display = 'block';
+          return;
+        }
+        
+        supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+        
+        if (!supabase || !supabase.auth) {
+          document.getElementById('authMessage').textContent = '初始化失败，请刷新重试';
+          document.getElementById('authMessage').style.display = 'block';
+          return;
+        }
+        
+        supabaseReady = true;
+        document.getElementById('authMessage').style.display = 'none';
+      } catch (error) {
+        document.getElementById('authMessage').textContent = '初始化异常: ' + error.message;
+        document.getElementById('authMessage').style.display = 'block';
+      }
     }
 
     function getRecords() {
@@ -609,6 +630,11 @@
     }
 
     async function login() {
+      if (!supabaseReady) {
+        setAuthMessage('系统初始化中，请稍候...');
+        return;
+      }
+      
       const email = document.getElementById('loginEmail').value;
       const password = document.getElementById('loginPassword').value;
       
@@ -629,6 +655,11 @@
     }
 
     async function register() {
+      if (!supabaseReady) {
+        setAuthMessage('系统初始化中，请稍候...');
+        return;
+      }
+      
       const email = document.getElementById('loginEmail').value;
       const password = document.getElementById('loginPassword').value;
       
